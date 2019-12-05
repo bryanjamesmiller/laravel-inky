@@ -2,7 +2,6 @@
 
 namespace Bryanjamesmiller\LaravelInky;
 
-use Illuminate\Support\Str;
 use Illuminate\View\Engines\CompilerEngine;
 use Illuminate\View\Compilers\CompilerInterface;
 use Illuminate\Filesystem\Filesystem;
@@ -19,42 +18,43 @@ class InkyCompilerEngine extends CompilerEngine
         $this->files = $files;
     }
 
-    public function get($path, array $data = [])
+    public function get($inkyFilePath, array $data = [])
     {
-        $results = parent::get($path, $data);
+        // Compiles the inky template as if it were a regular blade file
+        $html = parent::get($inkyFilePath, $data);
 
+        // remove css stylesheet links from email's HTML
         $crawler = new Crawler();
-        $crawler->addHtmlContent($results);
+        $crawler->addHtmlContent($html);
+        $cssLinks = $crawler->filter('link[rel=stylesheet]');
 
-        $stylesheets = $crawler->filter('link[rel=stylesheet]');
-
-        // collect hrefs
-        $stylesheetsHrefs = collect($stylesheets->extract('href'));
-
-        // remove links
-        $stylesheets->each(function (Crawler $crawler) {
+        $cssLinks->each(function (Crawler $crawler) {
             foreach ($crawler as $node) {
                 $node->parentNode->removeChild($node);
             }
         });
 
-        $results = $crawler->html();
+        $htmlWithoutLinks = $crawler->html();
 
-        // get the styles
+        // this array of CSS files to be used in the email will be
+        // provided via a publishable config file
+        $stylesheetsHrefs = collect([
+            'css/foundation-emails.css'
+        ]);
+
+        // combines all stylesheets in the config file into 1 string of CSS
         $styles = $stylesheetsHrefs->map(function ($path) {
+            // $stylesheetsHrefs will be an array of all css files to be
+            // included in the emails.  They will be entered in a publishable config file
+            // by users and will need to live at /public/$path
 
-            //  if this appears to be a local asset, get it locally
-            if (Str::startsWith($path, asset(''))) {
-                $path = str_replace(asset(''), public_path('/'), $path);
-            }
-
-            // With the above logic the foundation css file is
-            // going to be expected to be at /public/$path
+            // desired output => css/foundation-emails.css
+            // (this path successfully references a file in the public/css folder)
             return $this->files->get($path);
         })->implode("\n\n");
 
         $inliner = new CssToInlineStyles();
-        return $inliner->convert($results, $styles);
+        return $inliner->convert($htmlWithoutLinks, $styles);
     }
 
     public function getFiles()
