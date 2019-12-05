@@ -36,25 +36,21 @@ class InkyCompilerEngine extends CompilerEngine
 
         $htmlWithoutLinks = $crawler->html();
 
-        // this array of CSS files to be used in the email will be
-        // provided via a publishable config file
-        $stylesheetsHrefs = collect([
-            'css/foundation-emails.css'
-        ]);
+        // This array of CSS files to be inlined in the email will be
+        // provided via the user in the publishable config file
+        $stylesheetsHrefs = collect(config('inky.stylesheets'));
 
-        // combines all stylesheets in the config file into 1 string of CSS
-        $styles = $stylesheetsHrefs->map(function ($path) {
-            // $stylesheetsHrefs will be an array of all css files to be
-            // included in the emails.  They will be entered in a publishable config file
-            // by users and will need to live at /public/$path
+        // Combine all stylesheets into 1 string of CSS
+        $combinedStyles = $stylesheetsHrefs->map(function ($path) {
+            // The publishable config file should have the stylesheets
+            // referenced at public/$path but we want just the $path part of the URL here.
+            $path = str_replace('public/', '', $path);
 
-            // desired output => css/foundation-emails.css
-            // (this path successfully references a file in the public/css folder)
             return $this->files->get($path);
         })->implode("\n\n");
 
         $inliner = new CssToInlineStyles();
-        return $inliner->convert($htmlWithoutLinks, $styles);
+        return $inliner->convert($htmlWithoutLinks, $combinedStyles);
     }
 
     public function getFiles()
