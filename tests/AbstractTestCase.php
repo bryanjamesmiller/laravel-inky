@@ -1,8 +1,8 @@
 <?php
 
-namespace Petecoop\Tests\LaravelInky;
+namespace Bryanjamesmiller\Tests\LaravelInky;
 
-use Petecoop\LaravelInky\InkyServiceProvider;
+use Bryanjamesmiller\LaravelInky\InkyServiceProvider;
 use GrahamCampbell\TestBench\AbstractPackageTestCase;
 
 abstract class AbstractTestCase extends AbstractPackageTestCase
